@@ -19,17 +19,30 @@ export type QueryParams = Record<string, QueryParamValue>;
  * @throws {TypeError} when `url` is not a valid absolute URL
  */
 export function getQueryParams(url: string): QueryParams {
-  // TODO: implement.
-  //
-  // Requirements:
-  //  - single keys map to a string:            ?a=foo        -> { a: "foo" }
-  //  - repeated keys map to an array (ordered): ?c=x&c=y      -> { c: ["x", "y"] }
-  //  - keys and values are URL-decoded (`+` is a space)
-  //  - a key without a value maps to "":        ?a  or  ?a=   -> { a: "" }
-  //  - the #hash is not part of the query
-  //  - no query string returns {}
-  //  - an invalid URL throws a TypeError
-  //
-  // Run `npm test` and make the suite green.
-  throw new Error("Not implemented");
+  // `new URL` throws a TypeError for invalid / relative URLs,
+  // strips the #hash and handles decoding (incl. `+` as space).
+  const { searchParams } = new URL(url);
+
+  const result: QueryParams = {};
+
+  for (const [key, value] of searchParams) {
+    const existing = Object.prototype.hasOwnProperty.call(result, key)
+      ? result[key]
+      : undefined;
+
+    let next: QueryParamValue;
+    if (existing === undefined) next = value;
+    else if (Array.isArray(existing)) next = [...existing, value];
+    else next = [existing, value];
+
+    // defineProperty so "__proto__" becomes an own key instead of a prototype setter
+    Object.defineProperty(result, key, {
+      value: next,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
+  }
+
+  return result;
 }
